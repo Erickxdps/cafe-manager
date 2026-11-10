@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Caja · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera">
+  <h1>Caja</h1>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('workday.close') }}">Cerrar caja del día</a>
+  </div>
+</div>
+
+<h2 class="subtitulo">Efectivo en el cajón</h2>
+<div class="arqueo">
+  <div><span>Fondo inicial</span><strong>{{ t.fund|bs }}</strong><small>con lo que abriste</small></div>
+  <div><span class="op" aria-hidden="true">+</span><span>Ventas en efectivo</span><strong>{{ t.cash|bs }}</strong><small>dinero en mano</small></div>
+  <div><span class="op" aria-hidden="true">−</span><span>Gastos</span><strong>{{ t.expenses|bs }}</strong><small>pagados en efectivo</small></div>
+  <div class="resultado-caja {{ 'neg' if t.expected < 0 }}"><span class="op" aria-hidden="true">=</span><span>Efectivo esperado</span><strong>{{ t.expected|bs }}</strong><small>lo que debería haber al contar</small></div>
+</div>
+<div class="ventas-dia">
+  <div><span>Ventas del día</span><strong>{{ t.sales|bs }}</strong></div>
+  <div><span>En efectivo</span><strong>{{ t.cash|bs }}</strong></div>
+  <div><span>Por QR</span><strong>{{ t.qr|bs }}</strong><small class="suave"> va al banco, no al cajón</small></div>
+</div>
+
+{% if t.expected < 0 %}
+<div class="aviso error">{{ icono('alerta') }}<span>
+  <strong>Efectivo negativo:</strong> Los gastos superan el fondo inicial y el efectivo cobrado. Hay que reponer dinero en la caja chica.</span>
+</div>
+{% endif %}
+
+{% if pending_orders %}
+<section class="alertas recordatorios">
+  <div>
+    <h2>Pedidos pendientes de cobro ({{ pending_orders|length }})</h2>
+    {% for po in pending_orders %}
+      <a class="fila enlace" href="{{ url_for('orders.order_detail', oid=po.id) }}">
+        <strong>#{{ po.id }}</strong>
+        <span class="grow suave">{{ po.created_at[11:16] }}{% if po.resumen %} · {{ po.resumen }}{% endif %}</span>
+        <span class="chip bajo">Sin cobrar</span>
+        <strong>{{ po.total_cents|bs }}</strong>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<h2>Registrar un gasto pagado en efectivo</h2>
+<form class="gasto-form" method="post" action="{{ url_for('caja.add_expense') }}">
+  <label>Concepto<input name="concept" maxlength="80" placeholder="Taxi, insumo…" required></label>
+  <label>Importe (Bs)<input name="amount" inputmode="decimal" placeholder="0" required></label>
+  <label>Observación<input name="note" maxlength="200"></label>
+  <button class="btn">Agregar gasto</button>
+</form>
+{% for e in expenses %}
+<details class="fila gasto"><summary><span class="grow"><strong>{{ e.concept }}</strong> <small class="suave">{{ e.created_at[11:16] }}{% if e.note %} · {{ e.note }}{% endif %}</small></span><strong>{{ e.amount_cents|bs }}</strong></summary>
+  <form class="gasto-form" method="post" action="{{ url_for('caja.edit_expense', eid=e.id) }}">
+    <input name="concept" value="{{ e.concept }}" maxlength="80" required aria-label="Concepto"><input name="amount" value="{{ to_input(e.amount_cents) }}" inputmode="decimal" required aria-label="Importe">
+    <input name="note" value="{{ e.note }}" maxlength="200" aria-label="Observación"><button class="btn sec peq">Guardar</button></form>
+  <form method="post" action="{{ url_for('caja.delete_expense', eid=e.id) }}" data-confirm="¿Eliminar este gasto? El efectivo esperado aumentará."><button class="btn peligro peq">Eliminar</button></form>
+</details>
+{% else %}<p class="vacio">Aún no hay gastos en esta jornada.</p>{% endfor %}
+
+<div class="cabecera subtitulo">
+  <h2>Cobros de hoy</h2>
+  {% if payments %}
+  <div class="filtros-cobro">
+    <button type="button" class="btn sec peq activo" aria-pressed="true" data-filtro="todos">Todos ({{ payments|length }})</button>
+    <button type="button" class="btn sec peq" data-filtro="cash">Efectivo ({{ t.cash|bs }})</button>
+    <button type="button" class="btn sec peq" data-filtro="qr">QR ({{ t.qr|bs }})</button>
+  </div>
+  {% endif %}
+</div>
+{% for p in payments %}
+<a class="fila enlace cobro-item" data-metodo="{{ p.method }}" href="{{ url_for('orders.order_detail', oid=p.order_id) }}">
+  <strong>#{{ p.order_id }}</strong>
+  <span class="grow suave">{{ p.paid_at[11:16] }}{% if p.resumen %} · {{ p.resumen }}{% endif %}</span>
+  <span class="chip {{ 'ok' if p.method == 'cash' else 'neutro' }}">{{ 'Efectivo' if p.method == 'cash' else 'QR' }}</span>
+  <strong>{{ p.amount_cents|bs }}</strong>
+</a>
+{% else %}
+<p class="vacio">Aún no hay cobros.</p>
+{% endfor %}
+<p id="cobros-vacio-filtro" class="vacio" hidden>No hay cobros registrados con este método de pago.</p>
+{% endblock %}

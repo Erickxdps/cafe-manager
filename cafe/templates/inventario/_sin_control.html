@@ -1,0 +1,10 @@
+{% if untracked %}
+<details class="sin-control" {{ 'open' if not rows }}>
+  <summary>Productos sin control de existencias ({{ untracked|length }})</summary>
+  <p class="suave">Solo los productos con control de existencias aparecen para recibir y contar. Marca los que llegan físicamente (pan, galletas, pastelería…). Las bebidas que se preparan no hace falta.</p>
+  <form method="post" action="{{ url_for('inventory.enable_tracking') }}">
+    <div class="opciones">{% for u in untracked %}<label class="check"><input type="checkbox" name="v_id" value="{{ u.variant_id }}"> {{ u.name }} <small class="suave">({{ u.category }})</small></label>{% endfor %}</div>
+    <button class="btn peq">Activar control de existencias</button>
+  </form>
+</details>
+{% endif %}

@@ -1,0 +1,25 @@
+# Entorno y caché de Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Datos y configuración local (cada instalación tiene los suyos)
+data/
+ubicacion_datos.txt
+*.db
+*.zip
+secret.key
+.env
+
+# Respaldos y bitácora personal
+_respaldo_codigo/
+data_antes_de_mover/
+PROGRESO.md
+
+# Sistema y editores
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

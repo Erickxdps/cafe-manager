@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Promociones · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>Promociones y combos</h1><a class="btn" href="{{ url_for('promotions.promo_new') }}">Nueva promoción</a></div>
+{% for p in promos %}
+<div class="promo-fila {{ 'inactivo' if not p.active }}">
+  <div class="grow">
+    <a class="promo-nombre" href="{{ url_for('promotions.promo_edit', pid=p.id) }}">{{ p.name }}</a>
+    {% if not p.active %}<span class="chip neutro">No disponible</span>{% endif %}
+    <div class="promo-partes">{% for s in p.slots %}
+      <span class="parte"><b>{{ s.name }}{% if s.quantity > 1 %} ×{{ s.quantity }}{% endif %}</b>
+        {% if s.categories %}{% for c in s.categories %}<span class="chip neutro">{{ cat_names.get(c, '?') }}</span>{% endfor %}{% endif %}
+        {% if s.options %}<span class="chip neutro">+ {{ s.options|length }} suelto{{ 's' if s.options|length != 1 }}</span>{% endif %}
+        {% if not s.categories and not s.options %}<span class="chip bajo">sin opciones</span>{% endif %}</span>
+      {% if not loop.last %}<span class="mas" aria-hidden="true">+</span>{% endif %}{% endfor %}</div>
+  </div>
+  <strong class="promo-precio">{{ p.price_cents|bs }}</strong>
+  <div class="acciones-fila">
+    <a class="btn sec peq" href="{{ url_for('promotions.promo_edit', pid=p.id) }}">Editar</a>
+    <form method="post" action="{{ url_for('promotions.promo_delete', pid=p.id) }}"
+          data-confirm="{{ '¿Archivar «' ~ p.name ~ '»? Ya se vendió: dejará de aparecer para vender, pero los pedidos e informes anteriores la conservan.' if p.used else '¿Eliminar «' ~ p.name ~ '»? No se puede deshacer.' }}">
+      <button class="btn peligro peq">{{ 'Archivar' if p.used else 'Eliminar' }}</button></form>
+  </div>
+</div>
+{% else %}<p class="vacio">No hay promociones. Crea una con «Nueva promoción».</p>{% endfor %}
+
+{% if archived %}
+<details class="sin-control">
+  <summary>Promociones archivadas ({{ archived|length }})</summary>
+  <p class="suave">Ya no se venden. Se conservan porque aparecen en pedidos anteriores.</p>
+  <ul>{% for a in archived %}<li>{{ a.name }} · {{ a.price_cents|bs }} · vendida {{ a.sold }} {{ 'vez' if a.sold == 1 else 'veces' }}</li>{% endfor %}</ul>
+</details>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ data.name or 'Nueva promoción' }} · Café Personal{% endblock %}
+{% macro slot(s) %}
+<fieldset class="eleccion" data-idx="{{ s.idx }}">
+  <input type="hidden" name="slot_idx" value="{{ s.idx }}"><input type="hidden" name="slot_{{ s.idx }}_id" value="{{ s.id }}">
+  <input type="hidden" name="slot_{{ s.idx }}_qty" value="{{ s.qty or 1 }}">
+  <div class="eleccion-cabeza">
+    <label class="grow">Nombre de la elección<input name="slot_{{ s.idx }}_name" value="{{ s.name }}" maxlength="40" placeholder="Por ejemplo: Bebida" required></label>
+    <button type="button" class="btn sec peq quitar-eleccion">Quitar</button>
+  </div>
+  <p class="cabezal">Secciones incluidas</p>
+  <div class="secciones" role="group" aria-label="Secciones incluidas">
+    {% for c, vs in (groups|selectattr('1')|list) + (groups|rejectattr('1')|list) %}
+    <label class="seccion {{ 'vacia' if not vs }}" {% if not vs %}title="Sin productos todavía; los que agregues a esta sección entrarán solos"{% endif %}>
+      <input type="checkbox" class="cat-toggle" name="slot_{{ s.idx }}_cats" value="{{ c.id }}" data-n="{{ vs|length }}" {{ 'checked' if c.id in s.cats }}>
+      <span><b>{{ c.name }}</b><small>{{ vs|length }} producto{{ 's' if vs|length != 1 }}</small></span>
+    </label>
+    {% else %}<p class="vacio">Primero crea categorías y productos en el catálogo.</p>{% endfor %}
+  </div>
+  <p class="resumen-eleccion" aria-live="polite"></p>
+  <details class="sueltos" {{ 'open' if s.options }}>
+    <summary>Agregar productos sueltos de otras secciones</summary>
+    <p class="suave">Útil si solo quieres algunos productos de una sección. Las secciones ya incluidas están completas.</p>
+    {% for c, vs in groups if vs %}
+    <div class="sueltos-grupo" data-cat="{{ c.id }}">
+      <p class="sueltos-titulo">{{ c.name }}</p>
+      <div class="sueltos-lista">{% for v in vs %}
+        <label class="producto-chip"><input type="checkbox" name="slot_{{ s.idx }}_options" value="{{ v.variant_id }}"
+          {{ 'checked' if v.variant_id in s.options and c.id not in s.cats }} {{ 'disabled' if c.id in s.cats }}><span>{{ v.name }}</span></label>{% endfor %}</div>
+    </div>
+    {% endfor %}
+  </details>
+</fieldset>
+{% endmacro %}
+{% block content %}
+<div class="cabecera"><h1>{{ data.name or 'Nueva promoción' }}</h1>
+  <a class="btn sec" href="{{ url_for('promotions.promo_list') }}">Volver a promociones</a></div>
+<form class="promo-form" method="post" id="promo-form">
+  <section class="promo-datos">
+    <label>Nombre<input name="name" value="{{ data.name }}" maxlength="60" required placeholder="Por ejemplo: Combo Bs 17"></label>
+    <label>Precio del combo (Bs)<input name="price" value="{{ data.price }}" inputmode="decimal" required placeholder="17"></label>
+    <label class="ancho">Descripción <small class="suave">(opcional)</small><input name="description" value="{{ data.description }}" maxlength="200" placeholder="Un café o té + un producto de panadería"></label>
+    <label class="check ancho"><input type="checkbox" name="active" value="1" {{ 'checked' if data.active }}> Disponible para vender</label>
+  </section>
+  <p class="suave">Se cobra una sola vez por su precio. Las existencias se descuentan de lo que se elige, no del combo.</p>
+
+  <h2 class="subtitulo">Qué se elige en el combo</h2>
+  <div id="slots">{% for s in data.slots %}{{ slot(s) }}{% endfor %}</div>
+  <template id="plantilla-slot">{{ slot({'idx': '__I__', 'id': '', 'name': '', 'qty': 1, 'options': [], 'cats': []}) }}</template>
+  <button type="button" id="agregar-slot" class="btn sec">+ Agregar otra elección</button>
+
+  <div class="acciones"><button class="btn">Guardar promoción</button>
+    <a class="btn sec" href="{{ url_for('promotions.promo_list') }}">Cancelar</a></div>
+</form>
+{% if pid %}
+<form class="zona-borrar" method="post" action="{{ url_for('promotions.promo_delete', pid=pid) }}"
+      data-confirm="{{ '¿Archivar esta promoción? Ya se vendió: dejará de aparecer para vender, pero los pedidos e informes anteriores la conservan.' if used else '¿Eliminar esta promoción? No se puede deshacer.' }}">
+  <button class="btn peligro peq">{{ 'Archivar promoción' if used else 'Eliminar promoción' }}</button>
+  <span class="suave">{{ 'Ya se vendió: se archiva en lugar de borrarse, para no perder el historial.' if used else 'Nunca se vendió: se borra por completo.' }}</span>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/promocion.js') }}"></script>{% endblock %}

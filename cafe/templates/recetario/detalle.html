@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "macros.html" import foto %}
+{% block title %}{{ r.name }} · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>{{ r.name }}</h1><div class="acciones">
+  <a class="btn sec" href="{{ url_for('recipes.recipe_edit', rid=r.id) }}">Editar</a>
+  <form method="post" action="{{ url_for('recipes.recipe_delete', rid=r.id) }}" data-confirm="¿Eliminar esta receta? No se puede deshacer."><button class="btn peligro">Eliminar</button></form></div></div>
+<section class="ficha">{{ foto(r.photo, r.name, 'grande') }}<div>
+  <p class="suave">{{ r.drink_type or 'Sin tipo' }}{% if r.product_name %} · Producto: {{ r.product_name }}{% endif %}</p>
+  {% if r.description %}<p>{{ r.description }}</p>{% endif %}
+  <ol class="pasos">{% for s in r.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+  {% if r.notes %}<h2>Notas personales</h2><p class="notas">{{ r.notes }}</p>{% endif %}</div></section>
+{% endblock %}

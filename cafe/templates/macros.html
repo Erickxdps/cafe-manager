@@ -1,0 +1,11 @@
+{% macro disponibilidad(av, stock) %}
+  {% if av == 'agotado' %}<span class="chip agotado">Agotado</span>
+  {% elif av == 'bajo' %}<span class="chip bajo">Quedan {{ stock }}</span>
+  {% elif av == 'ok' %}<span class="chip ok">{{ stock }} disponibles</span>
+  {% else %}<span class="chip neutro">Sin control</span>{% endif %}
+{% endmacro %}
+
+{% macro foto(path, nombre, clase='mini') %}
+  {% if path %}<img class="{{ clase }}" src="{{ url_for('catalog.media', filename=path) }}" alt="">
+  {% else %}<span class="{{ clase }} sin-foto" aria-hidden="true">{{ nombre|inicial }}</span>{% endif %}
+{% endmacro %}

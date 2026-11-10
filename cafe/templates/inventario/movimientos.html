@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Movimientos · Café Personal{% endblock %}
+{% block content %}
+<h1>Inventario</h1>
+{% include "inventario/_tabs.html" %}
+<form class="filtros" method="get">
+  <select name="variante" aria-label="Producto"><option value="">Todos los productos</option>
+    {% for v in tracked %}<option value="{{ v.variant_id }}" {{ 'selected' if vid == v.variant_id }}>{{ v.name }}</option>{% endfor %}</select>
+  <select name="tipo" aria-label="Tipo"><option value="">Todos los tipos</option>
+    {% for k, label in kinds.items() %}<option value="{{ k }}" {{ 'selected' if kind == k }}>{{ label }}</option>{% endfor %}</select>
+  <button class="btn sec peq">Filtrar</button>
+</form>
+{% if variant %}
+<section class="ficha"><div><h2>{{ variant.name }}</h2><p>Existencias actuales: <strong>{{ variant.stock }}</strong> (mínimo {{ variant.min_stock }})</p>
+  <form class="inline" method="post" action="{{ url_for('inventory.adjust') }}">
+    <input type="hidden" name="variant_id" value="{{ variant.variant_id }}">
+    <input type="number" name="delta" placeholder="± unidades" aria-label="Unidades a sumar o restar" required style="max-width:9rem">
+    <input name="note" placeholder="Motivo del ajuste (obligatorio)" maxlength="120" required aria-label="Motivo">
+    <button class="btn peq">Ajustar</button></form></div></section>
+{% endif %}
+<div class="tabla-scroll"><table class="tabla">
+  <thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th class="n">Cantidad</th><th>Detalle</th></tr></thead>
+  <tbody>{% for m in moves %}
+    <tr><td>{{ m.created_at }}</td><td>{{ m.product }}{{ ' — ' ~ m.variant if m.variant }}</td><td>{{ kinds[m.kind] }}</td>
+      <td class="n {{ 'pos' if m.quantity > 0 else 'neg' }}">{{ '%+d'|format(m.quantity) }}</td>
+      <td>{% if m.order_id %}<a href="{{ url_for('orders.order_detail', oid=m.order_id) }}">Pedido #{{ m.order_id }}</a>{% else %}{{ m.note }}{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="vacio">Sin movimientos.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

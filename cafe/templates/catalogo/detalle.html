@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import disponibilidad, foto %}
+{% block title %}{{ p.name }} · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>{{ p.name }}</h1>
+  <div class="acciones"><a class="btn sec" href="{{ url_for('catalog.product_edit', pid=p.id) }}">Editar</a>
+  <form method="post" action="{{ url_for('catalog.product_state', pid=p.id) }}" {% if p.active %}data-confirm="¿Desactivar este producto? El historial se conserva."{% endif %}>
+    <input type="hidden" name="active" value="{{ 0 if p.active else 1 }}">
+    <button class="btn sec">{{ 'Desactivar' if p.active else 'Activar' }}</button></form></div></div>
+<section class="ficha">
+  {{ foto(p.photo, p.name, 'grande') }}
+  <div><p class="suave">{{ p.category }}{% if not p.active %} · desactivado{% endif %}</p>
+    {% if p.description %}<p>{{ p.description }}</p>{% endif %}
+    <table class="tabla"><thead><tr><th>Presentación</th><th>Precio</th><th>Existencias</th></tr></thead><tbody>
+    {% for v in p.variants %}<tr class="{{ 'inactivo' if not v.variant_active }}"><td>{{ v.variant_name or 'Única' }}{% if not v.variant_active %} (desactivada){% endif %}</td>
+      <td>{{ v.price_cents|bs }}</td><td>{{ disponibilidad(v.availability, v.stock) }}</td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+<h2>Receta</h2>
+{% for r in recipes %}
+  <section class="receta"><h3><a href="{{ url_for('recipes.recipe_detail', rid=r.id) }}">{{ r.name }}</a></h3>
+  <ol>{% for s in r.steps %}<li>{{ s }}</li>{% endfor %}</ol></section>
+{% else %}
+  <p class="vacio">Este producto no tiene receta. <a href="{{ url_for('recipes.recipe_new', producto=p.id) }}">Crear receta</a></p>
+{% endfor %}
+{% endblock %}

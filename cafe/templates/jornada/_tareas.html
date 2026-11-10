@@ -1,0 +1,9 @@
+{% macro lista(titulo, items, editable) %}
+<section class="tareas">
+  {% set p = progress(items) %}
+  <h2>{{ titulo }} <small class="suave">{{ p[0] }} de {{ p[1] }}</small></h2>
+  <ul>{% for t in items %}
+    <li class="tarea {{ 'hecha' if t.done }}"><label class="check"><input type="checkbox" data-task="{{ t.id }}" {{ 'checked' if t.done }} {{ 'disabled' if not editable }}> {{ t.text }}</label></li>
+  {% else %}<li class="vacio">Sin tareas. Puedes definirlas en «Configurar listas».</li>{% endfor %}</ul>
+</section>
+{% endmacro %}

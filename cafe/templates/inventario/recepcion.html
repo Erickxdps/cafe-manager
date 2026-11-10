@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Recepción · Café Personal{% endblock %}
+{% block content %}
+<h1>Inventario</h1>
+{% include "inventario/_tabs.html" %}
+{% if not wd %}<p class="aviso error">Abre la jornada para registrar recepciones.</p>{% endif %}
+{% if not rows %}
+<p class="aviso">Todavía no hay productos con control de existencias. Actívalo para los que llegan físicamente y luego regresa aquí a anotar lo recibido.</p>
+{% endif %}
+<p class="suave">Cuenta las unidades que llegaron y anótalas en «Contado». Si quieres comparar con lo que debía llegar, escribe «Esperado» (opcional).</p>
+<form method="post" class="tabla-form">
+  <div class="tabla-scroll"><table class="tabla num">
+    <thead><tr><th>Producto</th><th>En sistema</th><th>Esperado</th><th>Contado</th><th>Diferencia</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr data-diff><td>{{ r.name }}<input type="hidden" name="v_id" value="{{ r.variant_id }}"></td><td>{{ r.stock }}</td>
+        <td><input type="number" name="expected" min="0" class="esp" aria-label="Esperado de {{ r.name }}"></td>
+        <td><input type="number" name="counted" min="0" class="cnt" aria-label="Contado de {{ r.name }}"></td><td class="dif"></td></tr>
+    {% else %}<tr><td colspan="5" class="vacio">No hay productos con control de existencias.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="acciones"><button class="btn" {{ 'disabled' if not wd }}>Registrar recepción</button></div>
+</form>
+{% include "inventario/_sin_control.html" %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/inventario.js') }}"></script>{% endblock %}

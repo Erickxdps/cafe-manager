@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Configuración · Café Personal{% endblock %}
+{% block content %}
+<h1>Configuración</h1>
+<div class="dos-col">
+<section>
+  <h2>Caja</h2>
+  <form class="formulario" method="post" action="{{ url_for('config.save') }}">
+    <label>{{ labels.default_fund_cents }} (Bs)<input name="default_fund_cents" value="{{ to_input(s.default_fund_cents) }}" inputmode="decimal" required>
+      <small class="suave">Se usa la primera vez; después el fondo sugerido es lo que reservaste al cerrar la jornada anterior.</small></label>
+    <label>{{ labels.default_reserve_cents }} (Bs)<input name="default_reserve_cents" value="{{ to_input(s.default_reserve_cents) }}" inputmode="decimal" required>
+      <small class="suave">Lo que se sugiere guardar como caja chica al cerrar.</small></label>
+    <div class="acciones"><button class="btn">Guardar</button></div>
+  </form>
+</section>
+<section>
+  <h2>Listas y catálogo</h2>
+  <ul class="enlaces">
+    <li><a href="{{ url_for('workday.lists') }}">Tareas de apertura y cierre</a></li>
+    <li><a href="{{ url_for('catalog.categories') }}">Categorías</a></li>
+    <li><a href="{{ url_for('promotions.promo_list') }}">Promociones y combos</a></li>
+  </ul>
+  <h2>Datos</h2>
+  <p class="suave">Versión de la base de datos: {{ schema }}<br>Carpeta de datos: <code>{{ data_dir }}</code></p>
+</section>
+</div>
+
+<h2 id="copias">Copias de seguridad</h2>
+<p class="suave">Cada copia guarda la base de datos y las fotos en un solo archivo .zip dentro de <code>data\backups</code>.
+Al cerrar una jornada se crea una copia automática (se conservan las últimas 30). Para tener una copia fuera de esta computadora,
+descárgala y guárdala en un USB o en otra carpeta.</p>
+<div class="acciones grandes">
+  <form method="post" action="{{ url_for('config.backup_create') }}"><button class="btn">Crear copia ahora</button></form>
+</div>
+
+<details class="restaurar">
+  <summary>Restaurar desde un archivo (.zip o .db)</summary>
+  <form method="post" action="{{ url_for('config.backup_restore_upload') }}" enctype="multipart/form-data"
+        data-confirm="Se reemplazarán TODOS los datos actuales por los de la copia. Antes se guardará automáticamente una copia del estado actual. ¿Continuar?">
+    <input type="file" name="archivo" accept=".zip,.db" required>
+    <label class="check"><input type="checkbox" name="entiendo" value="1" required> Entiendo que se reemplazarán los datos actuales</label>
+    <button class="btn peligro">Restaurar</button>
+  </form>
+</details>
+
+<div class="tabla-scroll"><table class="tabla copias">
+<thead><tr><th>Fecha</th><th>Tipo</th><th>Contenido</th><th class="n">Tamaño</th><th></th></tr></thead><tbody>
+{% for b in backups %}<tr {% if b.damaged %}class="inactivo"{% endif %}>
+  <td>{{ b.when.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ b.label }}</td>
+  <td>{% if b.damaged %}<span class="chip agotado">Dañada</span>{% else %}{{ 'Base + fotos' if b.photos else 'Solo base de datos' }}{% if b.counts.get('workdays') is not none %}<small class="suave"> · {{ b.counts.workdays }} jornadas, {{ b.counts.orders }} pedidos, {{ b.counts.products }} productos</small>{% endif %}{% endif %}</td>
+  <td class="n">{{ b.size_text }}</td>
+  <td class="acciones-fila">
+    <a class="btn sec peq" href="{{ url_for('config.backup_download', name=b.name) }}">Descargar</a>
+    {% if not b.damaged %}<form method="post" action="{{ url_for('config.backup_restore', name=b.name) }}"
+      data-confirm="¿Restaurar la copia del {{ b.when.strftime('%d/%m/%Y %H:%M') }}? Se reemplazarán TODOS los datos actuales (antes se guardará una copia del estado actual).">
+      <input type="hidden" name="entiendo" value="1"><button class="btn sec peq">Restaurar</button></form>{% endif %}
+    <form method="post" action="{{ url_for('config.backup_delete', name=b.name) }}" data-confirm="¿Eliminar esta copia? No se puede deshacer.">
+      <button class="btn sec peq peligro-txt" aria-label="Eliminar copia">Eliminar</button></form></td></tr>
+{% else %}<tr><td colspan="5" class="vacio">Todavía no hay copias. Crea la primera con el botón de arriba.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Reposición · Café Personal{% endblock %}
+{% block content %}
+<h1>Inventario</h1>
+{% include "inventario/_tabs.html" %}
+<nav class="pestanas dias" aria-label="Jornadas a considerar">
+  <span class="suave">Basado en jornadas de:</span>
+  <a href="{{ url_for('inventory.restock', dia='todos') }}" {{ 'aria-current=page' if weekday is none }}>Todos los días</a>
+  {% for d in available %}<a href="{{ url_for('inventory.restock', dia=d) }}" {{ 'aria-current=page' if weekday == d }}>{{ dias[d]|capitalize }}</a>{% endfor %}
+</nav>
+{% if not data.days %}
+<p class="vacio">Todavía no hay jornadas cerradas con ventas{{ ' de ' ~ dias[weekday] if weekday is not none }}, así que no hay datos reales para sugerir cantidades. Cuando cierres tus primeras jornadas, aquí aparecerá cuánto reponer según lo que realmente vendes.</p>
+{% else %}
+<p class="suave">Calculado con {{ data.days }} jornada(s) cerrada(s){{ ' de ' ~ dias[weekday] ~ ' (cada día se compara solo con el mismo día)' if weekday is not none }}. Sugerencia = lo mayor entre el promedio vendido por jornada (redondeado hacia arriba) y el stock mínimo, menos lo que hay ahora.</p>
+<div class="tabla-scroll"><table class="tabla num">
+  <thead><tr><th>Producto</th>{% for label in data.dates %}<th>{{ label }}</th>{% endfor %}<th>Promedio</th><th>Mínimo</th><th>Hay ahora</th><th>Sugerencia</th></tr></thead>
+  <tbody>{% for r in data.rows %}
+    <tr class="{{ 'sugiere' if r.suggestion }}"><td>{{ r.name }}</td>{% for n in r.daily %}<td>{{ n }}</td>{% endfor %}
+      <td>{{ '%.1f'|format(r.avg) }}</td><td>{{ r.min_stock }}</td><td>{{ r.stock }}</td><td><strong>{{ r.suggestion if r.suggestion else '—' }}</strong></td></tr>
+  {% endfor %}</tbody></table></div>
+{% endif %}
+{% endblock %}

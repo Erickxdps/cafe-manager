@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Comparar jornadas · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>Comparar jornadas</h1><a class="btn sec" href="{{ url_for('reports.history') }}">Volver al historial</a></div>
+{% include "historial/_tabs.html" %}
+{% set rows = [('Pedidos pagados', 'paid', 'n'), ('Cancelados', 'cancelled', 'n'), ('Unidades vendidas', 'units', 'n'),
+               ('Ventas en efectivo', 'cash', 'm'), ('Ventas por QR', 'qr', 'm'), ('Total de ventas', 'sales', 'm'),
+               ('Descuentos', 'discounts', 'm'), ('Gastos', 'expenses', 'm'), ('Fondo inicial', 'opening_fund_cents', 'm'),
+               ('Efectivo esperado', 'expected', 'm')] %}
+<div class="tabla-scroll"><table class="tabla num comparar">
+<thead><tr><th></th>{% for d in c.days %}<th><a href="{{ url_for('workday.report', wid=d.id) }}">{{ d.work_date|fecha }}</a><br><small class="suave">{{ dia(d.work_date) }}</small></th>{% endfor %}</tr></thead>
+<tbody>
+{% for label, key, kind in rows %}{% set values = c.days|map(attribute=key)|list %}{% set best = values|max %}
+<tr class="{{ 'total' if key == 'sales' }}"><td>{{ label }}</td>{% for v in values %}<td class="{{ 'mejor' if key in ('sales', 'paid', 'units') and v == best and v > 0 and values|select('equalto', best)|list|length == 1 }}">{{ v|bs if kind == 'm' else v }}</td>{% endfor %}</tr>
+{% endfor %}
+<tr><td>Diferencia de caja</td>{% for d in c.days %}<td>{% if d.difference is none %}·{% elif d.difference == 0 %}Cuadra{% else %}{{ '+' if d.difference > 0 }}{{ d.difference|bs }}{% endif %}</td>{% endfor %}</tr>
+</tbody></table></div>
+<p class="suave">Resaltado: la jornada con el valor más alto en pedidos, unidades y ventas.</p>
+
+<h2>Unidades vendidas por producto</h2>
+{% if c.products %}<div class="tabla-scroll"><table class="tabla num comparar">
+<thead><tr><th>Producto</th>{% for d in c.days %}<th>{{ d.work_date|fecha }}</th>{% endfor %}<th>Total</th></tr></thead><tbody>
+{% for p in c.products %}<tr><td>{{ p.name }}</td>{% for u in p.units %}<td>{{ u or '·' }}</td>{% endfor %}<td><strong>{{ p.total_units }}</strong></td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p class="vacio">Ninguna de estas jornadas tiene ventas.</p>{% endif %}
+{% endblock %}

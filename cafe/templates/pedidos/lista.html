@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Pedidos · Café Personal{% endblock %}
+{% block content %}
+{% if not wd %}
+<h1>Pedidos</h1>
+<section class="ficha"><div>
+  <p>No hay una jornada abierta. Ábrela para registrar pedidos.</p>
+  <form class="inline" method="post" action="{{ url_for('workday.open_') }}">
+    <label>Fondo inicial (Bs)<input name="fund" value="{{ default_fund|int // 100 }}" inputmode="decimal"></label>
+    <input type="hidden" name="next" value="/pedidos"><button class="btn">Abrir jornada de hoy</button></form></div></section>
+{% else %}
+<div class="cabecera"><h1>Pedidos de hoy</h1><a class="btn" href="{{ url_for('orders.order_new') }}">Nuevo pedido</a></div>
+<p class="suave">Jornada {{ wd.work_date|fecha }} · fondo inicial {{ wd.opening_fund_cents|bs }}</p>
+{% for o in orders %}
+<a class="fila enlace {{ 'inactivo' if o.status == 'cancelled' }}" href="{{ url_for('orders.order_detail', oid=o.id) }}">
+  <strong>#{{ o.id }}</strong>
+  <span class="grow">{{ o.resumen or 'Sin productos' }}<small class="suave"> · {{ o.created_at[11:16] }}</small></span>
+  <strong>{{ o.total_cents|bs }}</strong>
+  {% if o.status == 'pending' %}<span class="chip bajo">Pendiente de pago</span>
+  {% elif o.status == 'paid' %}<span class="chip ok">{{ methods[o.method] }}</span>
+  {% else %}<span class="chip agotado">Cancelado</span>{% endif %}
+</a>
+{% else %}<p class="vacio">Todavía no hay pedidos en esta jornada.</p>{% endfor %}
+{% endif %}
+{% endblock %}

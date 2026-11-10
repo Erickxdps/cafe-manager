@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if rid else 'Nueva' }} receta · Café Personal{% endblock %}
+{% block content %}
+<h1>{{ 'Editar receta' if rid else 'Nueva receta' }}</h1>
+<form class="formulario" method="post" enctype="multipart/form-data">
+  <label>Nombre de la bebida<input name="name" value="{{ data.name or '' }}" maxlength="80" required autofocus></label>
+  <label>Tipo (café, té, jugo…)<input name="drink_type" value="{{ data.drink_type or '' }}" maxlength="40"></label>
+  <label>Producto del catálogo (opcional)<select name="product_id"><option value="">Ninguno</option>
+    {% for p in products %}<option value="{{ p.id }}" {{ 'selected' if data.product_id|string == p.id|string }}>{{ p.name }}</option>{% endfor %}</select></label>
+  <label>Descripción<textarea name="description" rows="2" maxlength="300">{{ data.description or '' }}</textarea></label>
+  <label>Pasos de preparación (uno por línea, sin medidas exactas)<textarea name="steps" rows="7" required>{{ data.steps or '' }}</textarea></label>
+  <label>Notas personales<textarea name="notes" rows="3" maxlength="1000">{{ data.notes or '' }}</textarea></label>
+  <label>Fotografía (opcional)<input type="file" name="photo" accept="image/*"></label>
+  <div class="acciones"><button class="btn">Guardar</button>
+    <a class="btn sec" href="{{ url_for('recipes.recipe_detail', rid=rid) if rid else url_for('recipes.recipe_list') }}">Cancelar</a></div>
+</form>
+{% endblock %}

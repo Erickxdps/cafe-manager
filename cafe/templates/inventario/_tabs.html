@@ -1,0 +1,8 @@
+<nav class="pestanas" aria-label="Inventario">
+  {% set e = request.endpoint %}
+  <a href="{{ url_for('inventory.summary') }}" {{ 'aria-current=page' if e == 'inventory.summary' }}>Resumen</a>
+  <a href="{{ url_for('inventory.receipt') }}" {{ 'aria-current=page' if e == 'inventory.receipt' }}>Recepción</a>
+  <a href="{{ url_for('inventory.count') }}" {{ 'aria-current=page' if e == 'inventory.count' }}>Conteo físico</a>
+  <a href="{{ url_for('inventory.history') }}" {{ 'aria-current=page' if e == 'inventory.history' }}>Movimientos</a>
+  <a href="{{ url_for('inventory.restock') }}" {{ 'aria-current=page' if e == 'inventory.restock' }}>Reposición</a>
+</nav>

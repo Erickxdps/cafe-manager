@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "historial/_rango.html" import rango with context %}
+{% block title %}Informes · Café Personal{% endblock %}
+{% block content %}
+{% set t = r.totals %}
+<div class="cabecera sin-imprimir"><h1>Informes</h1>
+  <div class="acciones"><a class="btn" href="{{ url_for('reports.export', fmt='excel', desde=r.start.isoformat(), hasta=r.end.isoformat()) }}">Descargar Excel</a>
+  <a class="btn" href="{{ url_for('reports.export', fmt='pdf', desde=r.start.isoformat(), hasta=r.end.isoformat()) }}">Descargar PDF</a>
+  <button class="btn sec" onclick="window.print()">Imprimir</button></div></div>
+<div class="sin-imprimir">{% include "historial/_tabs.html" %}</div>
+{{ rango('reports.report', r.start, r.end) }}
+<h1 class="solo-imprimir">Informe · {{ period(r) }}</h1>
+<p class="suave">Periodo {{ period(r) }} · {{ t.days }} jornada{{ 's' if t.days != 1 }}. Registro personal y orientativo; no es contabilidad oficial.</p>
+
+{% if not t.days %}<p class="vacio">No hay jornadas entre esas fechas.</p>{% else %}
+<div class="metricas">
+  <div><span>Total de ventas</span><strong>{{ t.sales|bs }}</strong><small>{{ t.paid }} pedidos pagados</small></div>
+  <div><span>En efectivo</span><strong>{{ t.cash|bs }}</strong></div>
+  <div><span>Por QR</span><strong>{{ t.qr|bs }}</strong></div>
+  <div><span>Gastos</span><strong>{{ t.expenses|bs }}</strong></div>
+  <div><span>Promedio por jornada</span><strong>{{ t.avg_sales|bs }}</strong></div>
+</div>
+{% if not r.reconciles %}<div class="aviso error">Las ventas por producto no cuadran con el total de ventas. Revisa la consistencia de los datos.</div>{% endif %}
+
+<div class="dos-col">
+<section><h2>Métodos de pago</h2>
+<table class="tabla num"><thead><tr><th>Método</th><th>Pedidos</th><th>Importe</th></tr></thead><tbody>
+{% for m in r.methods %}<tr><td>{{ m.label }}</td><td>{{ m.orders }}</td><td>{{ m.amount|bs }}</td></tr>{% else %}<tr><td colspan="3" class="suave">Sin cobros.</td></tr>{% endfor %}
+</tbody><tfoot><tr><td>Total</td><td>{{ t.paid }}</td><td>{{ t.sales|bs }}</td></tr></tfoot></table></section>
+<section><h2>Ventas por categoría</h2>
+<table class="tabla num"><thead><tr><th>Categoría</th><th>Unid.</th><th>Importe</th><th>%</th></tr></thead><tbody>
+{% for c in r.by_category %}<tr><td>{{ c.name }}</td><td>{{ c.units }}</td><td>{{ c.amount|bs }}</td><td>{{ pct(c.share) }}</td></tr>{% else %}<tr><td colspan="4" class="suave">Sin ventas.</td></tr>{% endfor %}
+</tbody></table></section>
+</div>
+
+<h2>Ventas por producto</h2>
+<table class="tabla num barras"><thead><tr><th>Producto</th><th>Unidades</th><th>Importe</th><th>%</th></tr></thead><tbody>
+{% for p in r.by_product %}<tr><td>{{ p.name }}{% if p.is_combo %} <span class="chip neutro">combo</span>{% endif %}</td><td>{{ p.units }}</td><td>{{ p.amount|bs }}</td>
+  <td class="pct"><span class="barra" aria-hidden="true"><i style="width:{{ [p.share, 100]|min }}%"></i></span>{{ pct(p.share) }}</td></tr>
+{% else %}<tr><td colspan="4" class="suave">Sin ventas.</td></tr>{% endfor %}
+</tbody><tfoot>
+{% if t.discounts %}<tr class="suave"><td>Subtotal</td><td></td><td>{{ r.gross|bs }}</td><td></td></tr>
+<tr class="suave"><td>− Descuentos</td><td></td><td>{{ t.discounts|bs }}</td><td></td></tr>{% endif %}
+<tr><td>Total de ventas</td><td></td><td>{{ t.sales|bs }}</td><td></td></tr></tfoot></table>
+<p class="suave">Un combo cuenta como una venta propia; sus componentes aparecen abajo, en el inventario.</p>
+
+<h2>Gastos</h2>
+{% if r.expenses %}<div class="dos-col">
+<table class="tabla num"><thead><tr><th>Concepto</th><th>Veces</th><th>Importe</th></tr></thead><tbody>
+{% for g in r.expenses_by_concept %}<tr><td>{{ g.concept }}</td><td>{{ g.count }}</td><td>{{ g.amount|bs }}</td></tr>{% endfor %}
+</tbody><tfoot><tr><td>Total</td><td></td><td>{{ t.expenses|bs }}</td></tr></tfoot></table>
+<table class="tabla"><thead><tr><th>Fecha</th><th>Concepto</th><th class="n">Importe</th></tr></thead><tbody>
+{% for e in r.expenses %}<tr><td>{{ e.work_date|fecha }} {{ e.created_at[11:16] }}</td><td>{{ e.concept }}{% if e.note %} <small class="suave">· {{ e.note }}</small>{% endif %}</td><td class="n">{{ e.amount_cents|bs }}</td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p class="suave">Sin gastos en el periodo.</p>{% endif %}
+
+<h2>Movimientos de inventario</h2>
+{% if r.inventory %}<div class="tabla-scroll"><table class="tabla num"><thead><tr><th>Producto</th><th>Inicial</th><th>Entradas</th><th>Vendidas</th><th>Ajuste +</th><th>Ajuste −</th></tr></thead><tbody>
+{% for i in r.inventory %}<tr><td>{{ i.name }}</td><td>{{ i.initial or '·' }}</td><td>{{ i.receipts or '·' }}</td><td>{{ i.sold or '·' }}</td><td>{{ i.adj_pos or '·' }}</td><td>{{ i.adj_neg or '·' }}</td></tr>{% endfor %}
+</tbody></table></div>
+<p class="suave">Solo movimientos registrados dentro de las jornadas del periodo. <a class="sin-imprimir" href="{{ url_for('inventory.history') }}">Ver el detalle de movimientos</a></p>
+{% else %}<p class="suave">Sin movimientos de inventario en el periodo.</p>{% endif %}
+
+{% if r.cancelled %}<h2>Pedidos cancelados</h2>
+<table class="tabla"><thead><tr><th>Fecha</th><th>Pedido</th><th>Productos</th><th class="n">Total</th><th>Pago anulado</th></tr></thead><tbody>
+{% for c in r.cancelled %}<tr><td>{{ c.work_date|fecha }}</td><td>#{{ c.id }}</td><td>{{ c.resumen or '' }}</td><td class="n">{{ c.total_cents|bs }}</td>
+<td>{% if c.voided_method %}{{ 'Efectivo' if c.voided_method == 'cash' else 'QR' }} {{ c.voided_amount|bs }}{% else %}<span class="suave">No se había cobrado</span>{% endif %}</td></tr>{% endfor %}
+</tbody></table>{% endif %}
+{% endif %}
+
+<h2>Existencias al {{ r.end|fecha }}</h2>
+{% if r.stock %}<div class="tabla-scroll"><table class="tabla num"><thead><tr><th>Producto</th><th>Existencias</th><th>Mínimo</th><th>Estado</th></tr></thead><tbody>
+{% for s in r.stock %}<tr><td>{{ s.name }} <small class="suave">{{ s.category }}</small></td><td><strong>{{ s.stock }}</strong></td><td>{{ s.min_stock or '·' }}</td>
+<td>{% if s.state == 'agotado' %}<span class="chip agotado">Agotado</span>{% elif s.state == 'bajo' %}<span class="chip bajo">Bajo</span>{% else %}<span class="chip ok">OK</span>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p class="suave">Ningún producto controla existencias.</p>{% endif %}
+{% endblock %}

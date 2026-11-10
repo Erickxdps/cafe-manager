@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not wd %}
+<section class="ahora">
+  <div><h1>Abre la jornada</h1>
+    <p>La jornada no está abierta. Al abrirla se crean las listas de apertura y cierre, y la caja empieza a contar desde el fondo inicial.</p></div>
+  <form method="post" action="{{ url_for('workday.open_') }}">
+    <label>Fondo inicial (Bs)<input name="fund" value="{{ (default_fund // 100) if default_fund % 100 == 0 else (default_fund / 100)|string|replace('.', ',') }}" inputmode="decimal"></label>
+    <input type="hidden" name="next" value="/"><button class="btn rotulo">Abrir jornada</button></form>
+</section>
+{% elif jornada_vencida %}
+<section class="ahora urgente">
+  <div><h1>Cierra la jornada anterior</h1>
+    <p>La jornada abierta es del {{ wd.work_date|fecha }}. Lo que registres ahora se contará en ese día.</p></div>
+  <div class="acciones"><a class="btn rotulo" href="{{ url_for('workday.close') }}">Cerrar esa jornada</a></div>
+</section>
+{% elif t.pending %}
+<section class="ahora">
+  <div><h1>{{ t.pending }} pedido{{ 's' if t.pending != 1 }} por cobrar</h1>
+    <p>Cóbralos o cancélalos antes de cerrar la jornada.</p></div>
+  <div class="acciones"><a class="btn rotulo" href="{{ url_for('orders.order_list') }}">Cobrar pedidos</a>
+    <a class="btn sec" href="{{ url_for('orders.order_new') }}">{{ icono('mas') }}Nuevo pedido</a></div>
+</section>
+{% else %}
+<section class="ahora">
+  <div><h1>Turno abierto</h1><p>Desde las {{ wd.opened_at[11:16] }}. No hay pedidos por cobrar.</p></div>
+  <div class="acciones"><a class="btn rotulo" href="{{ url_for('orders.order_new') }}">Nuevo pedido</a></div>
+</section>
+{% endif %}
+
+{% if wd %}
+<div class="metricas">
+  <div><span>Pedidos</span><strong>{{ t.registered }}</strong><small>{{ t.paid }} pagado{{ 's' if t.paid != 1 }}{% if t.pending %}, <b class="aviso-txt">{{ t.pending }} sin pagar</b>{% endif %}</small></div>
+  <div><span>Ventas registradas</span><strong>{{ t.sales|bs }}</strong><small>solo pedidos pagados</small></div>
+  <div><span>En efectivo</span><strong>{{ t.cash|bs }}</strong><small>entró al cajón</small></div>
+  <div><span>Por QR</span><strong>{{ t.qr|bs }}</strong><small>no suma al efectivo</small></div>
+  <div><span>Gastos</span><strong>{{ t.expenses|bs }}</strong><small>pagados en efectivo</small></div>
+  <div class="destacada {{ 'neg' if t.expected < 0 }}"><span>Efectivo esperado</span><strong>{{ t.expected|bs }}</strong><small>fondo {{ t.fund|bs }} + efectivo − gastos</small></div>
+</div>
+{% endif %}
+
+<div class="accesos">
+  <a class="acceso" href="{{ url_for('inventory.receipt') }}"><strong>{{ icono('recibir') }}</strong><b>Recibir productos</b><span>Anotar lo que llegó hoy</span></a>
+  {% if wd %}<a class="acceso" href="{{ url_for('caja.index') }}"><strong>{{ icono('caja') }}</strong><b>Caja y gastos</b><span>Registrar un gasto</span></a>
+  <a class="acceso" href="{{ url_for('workday.index') }}"><strong>{{ pending_tasks }}</strong><b>tareas pendientes</b><span>{{ done_tasks }} hechas; abrir la lista</span></a>
+  {% else %}<a class="acceso" href="{{ url_for('catalog.product_list') }}"><strong>{{ icono('catalogo') }}</strong><b>Catálogo</b><span>Productos y precios</span></a>
+  <a class="acceso" href="{{ url_for('reports.history') }}"><strong>{{ icono('historial') }}</strong><b>Historial</b><span>Jornadas anteriores</span></a>{% endif %}
+</div>
+
+{% if top or notes or out or low %}
+<div class="paneles">
+  {% if top %}<section class="alertas"><div><h2>Lo más vendido hoy</h2><ul>{% for p in top %}<li>{{ p.name }} <span class="chip neutro">{{ p.units }}</span></li>{% endfor %}</ul></div></section>{% endif %}
+  {% if notes %}<section class="alertas recordatorios"><div><h2>Recordatorios y tareas{% if notes_total > notes|length %} <small class="suave">({{ notes_total }})</small>{% endif %}</h2><ul>
+    {% for n in notes %}<li><a href="{{ url_for('notes.note_edit', nid=n.id) }}">{{ n.title }}</a>{% if n.kind == 'reminder' %} <span class="chip bajo">recordatorio</span>{% endif %}</li>{% endfor %}</ul>
+    <p><a href="{{ url_for('notes.note_list') }}">Ver todas las notas</a></p></div></section>{% endif %}
+  {% if out %}<section class="alertas agotados"><div><h2>Agotados</h2><ul>{% for v in out %}<li>{{ v.name }}</li>{% endfor %}</ul>
+    <p><a href="{{ url_for('inventory.summary', filtro='agotado') }}">Ver en inventario</a></p></div></section>{% endif %}
+  {% if low %}<section class="alertas recordatorios"><div><h2>Existencias bajas</h2><ul>{% for v in low %}<li>{{ v.name }} <span class="chip bajo">quedan {{ v.stock }}</span></li>{% endfor %}</ul>
+    <p><a href="{{ url_for('inventory.summary', filtro='bajo') }}">Ver en inventario</a></p></div></section>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "historial/_rango.html" import rango with context %}
+{% block title %}Historial · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>Historial</h1>
+  <div class="acciones"><a class="btn sec" href="{{ url_for('reports.export', fmt='excel', desde=start.isoformat(), hasta=end.isoformat()) }}">Excel</a>
+  <a class="btn sec" href="{{ url_for('reports.export', fmt='pdf', desde=start.isoformat(), hasta=end.isoformat()) }}">PDF</a></div></div>
+{% include "historial/_tabs.html" %}
+{{ rango('reports.history', start, end) }}
+{% set t = h.totals %}
+{% if h.rows %}
+<form method="get" action="{{ url_for('reports.compare') }}" id="comparar">
+<input type="hidden" name="desde" value="{{ start.isoformat() }}"><input type="hidden" name="hasta" value="{{ end.isoformat() }}">
+<div class="acciones"><button class="btn" id="btn-comparar" disabled>Comparar jornadas marcadas</button>
+  <span class="suave" id="cuenta-comparar">Marca de 2 a {{ max_compare }} jornadas.</span></div>
+<div class="tabla-scroll"><table class="tabla num historial">
+<thead><tr><th></th><th>Fecha</th><th>Pedidos</th><th>Efectivo</th><th>QR</th><th>Ventas</th><th>Gastos</th><th>Esperado</th><th>Contado</th><th>Diferencia</th><th></th></tr></thead>
+<tbody>
+{% for d in h.rows %}<tr>
+  <td><input type="checkbox" name="j" value="{{ d.id }}" aria-label="Comparar {{ d.work_date|fecha }}"></td>
+  <td><strong>{{ d.work_date|fecha }}</strong> <small class="suave">{{ dia(d.work_date) }}</small>{% if d.status == 'open' %} <span class="chip ok">abierta</span>{% endif %}</td>
+  <td>{{ d.paid }}{% if d.cancelled %} <small class="suave">+{{ d.cancelled }} canc.</small>{% endif %}</td>
+  <td>{{ d.cash|bs }}</td><td>{{ d.qr|bs }}</td><td><strong>{{ d.sales|bs }}</strong></td><td>{{ d.expenses|bs }}</td>
+  <td>{{ d.expected|bs }}</td><td>{{ d.counted_cash_cents|bs if d.counted_cash_cents is not none else '·' }}</td>
+  <td class="{{ 'neg' if d.difference is not none and d.difference < 0 else ('pos' if d.difference else '') }}">{% if d.difference is none %}·{% elif d.difference == 0 %}Cuadra{% else %}{{ '+' if d.difference > 0 }}{{ d.difference|bs }}{% endif %}</td>
+  <td><a href="{{ url_for('workday.report', wid=d.id) }}">Informe</a></td></tr>
+{% endfor %}</tbody>
+<tfoot><tr><td></td><td>{{ t.days }} jornada{{ 's' if t.days != 1 }}</td><td>{{ t.paid }}</td><td>{{ t.cash|bs }}</td><td>{{ t.qr|bs }}</td>
+  <td>{{ t.sales|bs }}</td><td>{{ t.expenses|bs }}</td><td></td><td></td>
+  <td>{% if t.difference is not none %}{{ '+' if t.difference > 0 }}{{ t.difference|bs }}{% endif %}</td><td></td></tr>
+<tr class="suave"><td></td><td colspan="10">Promedio de ventas por jornada: {{ t.avg_sales|bs }}{% if t.voided_n %} · {{ t.voided_n }} pago(s) anulado(s) por {{ t.voided|bs }} (no cuentan en las ventas){% endif %}</td></tr></tfoot>
+</table></div>
+</form>
+{% else %}<p class="vacio">No hay jornadas entre esas fechas.</p>{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/historial.js') }}"></script>{% endblock %}

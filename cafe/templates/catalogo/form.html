@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros.html" import foto %}
+{% block title %}{{ 'Editar' if pid else 'Nuevo' }} producto · Café Personal{% endblock %}
+{% macro fila(v) %}
+<div class="var-fila">
+  <input type="hidden" name="var_id" value="{{ v.id }}">
+  <label>Presentación<input name="var_name" value="{{ v.name }}" maxlength="40" placeholder="Vacío si es única"></label>
+  <label>Precio (Bs)<input name="var_price" value="{{ v.price }}" inputmode="decimal" placeholder="0" required></label>
+  <label>Control de stock<select name="var_tracks"><option value="0" {{ 'selected' if not v.tracks }}>No</option><option value="1" {{ 'selected' if v.tracks }}>Sí</option></select></label>
+  <label>Stock mínimo<input name="var_min" type="number" min="0" value="{{ v.min }}"></label>
+  <label>Estado<select name="var_active"><option value="1" {{ 'selected' if v.active }}>Activa</option><option value="0" {{ 'selected' if not v.active }}>Desactivada</option></select></label>
+  {% if not v.id %}<button type="button" class="btn sec peq quitar">Quitar</button>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+<h1>{{ 'Editar producto' if pid else 'Nuevo producto' }}</h1>
+<form class="formulario" method="post" enctype="multipart/form-data">
+  <label>Nombre<input name="name" value="{{ data.name }}" maxlength="80" required autofocus></label>
+  <label>Categoría<select name="category_id" required>
+    <option value="">Elige una categoría</option>
+    {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if data.category_id == c.id }}>{{ c.name }}</option>{% endfor %}
+  </select></label>
+  <label>Descripción (opcional)<textarea name="description" rows="2" maxlength="300">{{ data.description }}</textarea></label>
+  <div class="foto-campo">{% if data.photo %}{{ foto(data.photo, data.name, 'mini') }}{% endif %}
+    <label>Fotografía<input type="file" name="photo" accept="image/*"></label></div>
+  <h2>Presentaciones y precios</h2>
+  <p class="suave">Cada presentación tiene su propio precio y su propio stock. Las existencias se registran en Inventario.</p>
+  <div id="variantes">{% for v in data.variants %}{{ fila(v) }}{% endfor %}</div>
+  <template id="plantilla-variante">{{ fila({'id': '', 'name': '', 'price': '', 'tracks': 0, 'min': 0, 'active': 1}) }}</template>
+  <button type="button" id="agregar-variante" class="btn sec peq">Agregar presentación</button>
+  <div class="acciones"><button class="btn">Guardar</button>
+    <a class="btn sec" href="{{ url_for('catalog.product_detail', pid=pid) if pid else url_for('catalog.product_list') }}">Cancelar</a></div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/producto.js') }}"></script>{% endblock %}

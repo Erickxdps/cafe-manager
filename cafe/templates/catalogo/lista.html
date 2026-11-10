@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import disponibilidad, foto %}
+{% block title %}Catálogo · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>Catálogo</h1>
+  <div class="acciones"><a class="btn sec" href="{{ url_for('promotions.promo_list') }}">Promociones</a>
+  <a class="btn sec" href="{{ url_for('catalog.categories') }}">Categorías</a>
+  <a class="btn" href="{{ url_for('catalog.product_new') }}">Nuevo producto</a></div></div>
+<form class="filtros" method="get">
+  <select name="categoria" onchange="this.form.submit()" aria-label="Categoría">
+    <option value="">Todas las categorías</option>
+    {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if cat == c.id }}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <label><input type="checkbox" name="inactivos" value="1" {{ 'checked' if show_inactive }} onchange="this.form.submit()"> Mostrar desactivados</label>
+</form>
+{% for p in products %}
+<article class="fila {{ 'inactivo' if not p.active }}">
+  {{ foto(p.photo, p.name) }}
+  <div class="grow"><a class="nombre" href="{{ url_for('catalog.product_detail', pid=p.id) }}">{{ p.name }}</a>
+    <div class="suave">{{ p.category }}{% if not p.active %} · desactivado{% endif %}</div></div>
+  <ul class="variantes">
+    {% for v in p.variants if v.variant_active %}
+      <li><span>{{ v.variant_name or 'Precio' }}</span><strong>{{ v.price_cents|bs }}</strong>{{ disponibilidad(v.availability, v.stock) }}</li>
+    {% endfor %}
+  </ul>
+  <a class="btn sec peq" href="{{ url_for('catalog.product_edit', pid=p.id) }}">Editar</a>
+</article>
+{% else %}
+<p class="vacio">No hay productos todavía. Crea el primero con «Nuevo producto».</p>
+{% endfor %}
+{% endblock %}

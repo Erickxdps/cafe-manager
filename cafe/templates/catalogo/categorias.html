@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Categorías · Café Personal{% endblock %}
+{% block content %}
+<h1>Categorías</h1>
+<form class="inline" method="post"><input name="name" maxlength="40" placeholder="Nueva categoría" required aria-label="Nueva categoría"><button class="btn">Agregar</button></form>
+{% for c in categories %}
+<div class="fila {{ 'inactivo' if not c.active }}">
+  <form class="inline grow" method="post"><input type="hidden" name="id" value="{{ c.id }}">
+    <input name="name" value="{{ c.name }}" maxlength="40" required aria-label="Nombre"><button class="btn sec peq">Renombrar</button></form>
+  <span class="suave">{{ c.n_products }} productos</span>
+  <form method="post" action="{{ url_for('catalog.category_state', cid=c.id) }}"><input type="hidden" name="active" value="{{ 0 if c.active else 1 }}">
+    <button class="btn sec peq">{{ 'Desactivar' if c.active else 'Activar' }}</button></form>
+</div>
+{% endfor %}
+{% endblock %}

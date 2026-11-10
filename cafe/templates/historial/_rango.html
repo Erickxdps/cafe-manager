@@ -1,0 +1,10 @@
+{% macro rango(endpoint, start, end) %}
+<form class="rango sin-imprimir" method="get" action="{{ url_for(endpoint) }}">
+  <label>Desde<input type="date" name="desde" value="{{ start.isoformat() }}" required></label>
+  <label>Hasta<input type="date" name="hasta" value="{{ end.isoformat() }}" required></label>
+  <button class="btn sec">Ver</button>
+  <span class="atajos">{% for label, days in (('7 días', 7), ('30 días', 30), ('90 días', 90)) %}
+    <a href="{{ url_for(endpoint, desde=(today - timedelta(days=days - 1)).isoformat(), hasta=today.isoformat()) }}">{{ label }}</a>{% endfor %}
+    <a href="{{ url_for(endpoint, desde=today.replace(day=1).isoformat(), hasta=today.isoformat()) }}">Este mes</a></span>
+</form>
+{% endmacro %}

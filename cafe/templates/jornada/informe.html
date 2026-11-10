@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Informe {{ r.wd.work_date|fecha }} · Café Personal{% endblock %}
+{% block content %}
+{% set s = r.s %}
+<div class="cabecera sin-imprimir"><h1>Informe de cierre</h1>
+  <div class="acciones"><button class="btn sec" onclick="window.print()">Imprimir</button>
+  <a class="btn sec" href="{{ url_for('reports.export', fmt='pdf', desde=r.wd.work_date, hasta=r.wd.work_date) }}">PDF</a>
+  <a class="btn sec" href="{{ url_for('reports.export', fmt='excel', desde=r.wd.work_date, hasta=r.wd.work_date) }}">Excel</a>
+  {% if r.wd.status == 'closed' and latest.id == r.wd.id %}<form method="post" action="{{ url_for('workday.reopen', wid=r.wd.id) }}" data-confirm="¿Reabrir esta jornada?"><button class="btn sec">Reabrir jornada</button></form>{% endif %}
+  <a class="btn" href="{{ url_for('workday.index') }}">Abrir nueva jornada</a></div></div>
+<h1 class="solo-imprimir">Informe de cierre · Chez Moustache</h1>
+<p class="suave">Jornada {{ r.wd.work_date|fecha }} · abierta {{ r.wd.opened_at[11:16] }}{% if r.wd.closed_at %} · cerrada {{ r.wd.closed_at[11:16] }}{% else %} · <strong>aún abierta</strong>{% endif %}. Registro personal y orientativo; no es contabilidad oficial.</p>
+
+<h2>Caja</h2>
+<table class="tabla num cierre">
+  <tr><td>Fondo inicial</td><td>{{ s.fund|bs }}</td></tr>
+  <tr><td>+ Ventas en efectivo</td><td>{{ s.cash|bs }}</td></tr>
+  <tr><td>− Gastos</td><td>{{ s.expenses|bs }}</td></tr>
+  <tr class="total"><td>Efectivo esperado</td><td>{{ s.expected|bs }}</td></tr>
+  <tr><td>Efectivo contado</td><td>{{ s.counted|bs if s.counted is not none else 'No se contó' }}</td></tr>
+  {% if s.difference is not none %}<tr class="{{ 'neg' if s.difference < 0 else ('pos' if s.difference > 0 else '') }}"><td>Diferencia</td><td>{{ 'Cuadra' if s.difference == 0 else ('%+.2f'|format(s.difference / 100)|replace('.', ',') ~ (' (sobran ' ~ s.difference|bs ~ ')' if s.difference > 0 else ' (faltan ' ~ (-s.difference)|bs ~ ')')) }}</td></tr>{% endif %}
+  <tr><td>Reservado para la siguiente jornada</td><td>{{ s.reserve|bs }}</td></tr>
+  <tr><td>{{ 'A guardar en la bolsa (según lo contado)' if s.counted is not none else 'A guardar en la bolsa (según lo esperado)' }}</td>
+    <td>{% set bag = s.to_bag_counted if s.counted is not none else s.to_bag %}{% if bag >= 0 %}{{ bag|bs }}{% else %}Falta reponer {{ (-bag)|bs }} en caja chica{% endif %}</td></tr>
+</table>
+
+<h2>Ventas</h2>
+<table class="tabla num cierre">
+  <tr><td>Pedidos pagados</td><td>{{ s.paid }}</td></tr>
+  <tr><td>Cancelados</td><td>{{ s.cancelled }}</td></tr>
+  <tr><td>Ventas en efectivo</td><td>{{ s.cash|bs }}</td></tr>
+  <tr><td>Ventas por QR</td><td>{{ s.qr|bs }}</td></tr>
+  <tr class="total"><td>Total de ventas</td><td>{{ s.sales|bs }}</td></tr>
+  {% if r.discounts %}<tr class="suave"><td>Descuentos aplicados (ya descontados)</td><td>{{ r.discounts|bs }}</td></tr>{% endif %}
+</table>
+
+<h2>Productos vendidos</h2>
+<table class="tabla num"><thead><tr><th>Producto</th><th>Unidades</th><th>Importe</th></tr></thead><tbody>
+{% for p in r.sold %}<tr><td>{{ p.name }}</td><td>{{ p.units }}</td><td>{{ p.amount|bs }}</td></tr>{% else %}<tr><td colspan="3" class="vacio">Sin ventas.</td></tr>{% endfor %}
+</tbody></table>
+
+{% if r.cancelled %}<h2>Pedidos cancelados</h2>
+<table class="tabla"><thead><tr><th>Pedido</th><th>Productos</th><th class="n">Total</th><th>Pago anulado</th></tr></thead><tbody>
+{% for c in r.cancelled %}<tr><td>#{{ c.id }}</td><td>{{ c.resumen or '' }}</td><td class="n">{{ c.total_cents|bs }}</td>
+<td>{% if c.voided_method %}{{ 'Efectivo' if c.voided_method == 'cash' else 'QR' }} {{ c.voided_amount|bs }} <small class="suave">(no cuenta en la caja)</small>{% else %}<span class="suave">No se había cobrado</span>{% endif %}</td></tr>{% endfor %}
+</tbody></table>{% endif %}
+
+<h2>Gastos</h2>
+<table class="tabla"><thead><tr><th>Hora</th><th>Concepto</th><th class="n">Importe</th></tr></thead><tbody>
+{% for e in r.expenses %}<tr><td>{{ e.created_at[11:16] }}</td><td>{{ e.concept }}{% if e.note %} <small class="suave">· {{ e.note }}</small>{% endif %}</td><td class="n">{{ e.amount_cents|bs }}</td></tr>{% else %}<tr><td colspan="3" class="vacio">Sin gastos.</td></tr>{% endfor %}
+</tbody></table>
+
+<h2>Inventario</h2>
+<table class="tabla num"><thead><tr><th>Producto</th><th>Apertura</th><th>Entradas</th><th>Vendidas</th><th>Ajustes</th><th>Final</th></tr></thead><tbody>
+{% for i in r.inventory %}<tr><td>{{ i.name }}</td><td>{{ i.apertura }}</td><td>{{ i.entradas or '·' }}</td><td>{{ i.vendidas or '·' }}</td><td>{{ '%+d'|format(i.ajustes) if i.ajustes else '·' }}</td><td><strong>{{ i.final }}</strong></td></tr>
+{% else %}<tr><td colspan="6" class="vacio">Sin productos con control de existencias.</td></tr>{% endfor %}</tbody></table>
+{% if r.adjustments %}<h2>Diferencias registradas en el inventario</h2>
+<ul>{% for a in r.adjustments %}<li>{{ a.product }}{{ ' — ' ~ a.variant if a.variant }}: {{ '%+d'|format(a.quantity) }} · {{ a.note }}</li>{% endfor %}</ul>{% endif %}
+
+<h2>Tareas</h2>
+<div class="dos-col">{% for titulo, key in (('Apertura', 'open'), ('Cierre', 'close')) %}<div><h3>{{ titulo }}</h3><ul class="tareas-informe">
+{% for t in r.tasks[key] %}<li>{{ '☑' if t.done else '☐' }} {{ t.text }}</li>{% else %}<li class="suave">Sin tareas.</li>{% endfor %}</ul></div>{% endfor %}</div>
+{% if r.wd.notes %}<h2>Observaciones</h2><p class="notas">{{ r.wd.notes }}</p>{% endif %}
+{% endblock %}

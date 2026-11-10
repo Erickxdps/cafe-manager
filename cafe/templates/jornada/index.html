@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "jornada/_tareas.html" import lista %}
+{% block title %}Jornada · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>Jornada</h1><a class="btn sec" href="{{ url_for('workday.lists') }}">Configurar listas</a></div>
+<div id="mensaje" class="aviso error" role="alert" hidden></div>
+{% if wd %}
+<p class="suave">Abierta el {{ wd.work_date|fecha }} a las {{ wd.opened_at[11:16] }} · fondo inicial {{ wd.opening_fund_cents|bs }} · efectivo esperado <strong>{{ totals.expected|bs }}</strong></p>
+<div class="dos-col">
+  {{ lista('Apertura', tasks.open, true) }}
+  {{ lista('Cierre', tasks.close, true) }}
+</div>
+<div class="acciones"><a class="btn" href="{{ url_for('workday.close') }}">Cerrar jornada</a></div>
+{% else %}
+<section class="ficha"><div>
+  <p>No hay una jornada abierta.</p>
+  <form class="inline" method="post" action="{{ url_for('workday.open_') }}">
+    <label>Fondo inicial (Bs)<input name="fund" value="{{ (default_fund // 100) if default_fund % 100 == 0 else (default_fund / 100)|string|replace('.', ',') }}" inputmode="decimal"></label>
+    <button class="btn">Abrir jornada de hoy</button></form>
+  <p class="suave">El fondo sugerido es lo que reservaste al cerrar la jornada anterior; puedes cambiarlo.</p>
+  {% if last %}<form method="post" action="{{ url_for('workday.reopen', wid=last.id) }}" data-confirm="¿Reabrir la jornada del {{ last.work_date|fecha }}? Podrás modificar sus pedidos y gastos.">
+    <button class="btn sec peq">Reabrir la jornada del {{ last.work_date|fecha }}</button></form>{% endif %}
+</div></section>
+{% endif %}
+{% if past %}
+<h2>Jornadas anteriores</h2>
+{% for w in past %}<a class="fila enlace" href="{{ url_for('workday.report', wid=w.id) }}"><strong>{{ w.work_date|fecha }}</strong><span class="grow suave">cerrada {{ w.closed_at[11:16] if w.closed_at }}</span><span>Ver informe</span></a>{% endfor %}
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/tareas.js') }}"></script>{% endblock %}

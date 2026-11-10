@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Cerrar jornada · Café Personal{% endblock %}
+{% block content %}
+<div class="cabecera"><h1>Cerrar jornada</h1><p class="suave">Jornada del {{ wd.work_date|fecha }}</p></div>
+{% if pending %}
+<div class="aviso error"><strong>Hay {{ pending|length }} pedido(s) sin pagar.</strong> Cóbralos o cancélalos antes de cerrar:
+  {% for o in pending %}<a href="{{ url_for('orders.order_detail', oid=o.id) }}">#{{ o.id }} ({{ o.total_cents|bs }})</a>{{ ', ' if not loop.last }}{% endfor %}</div>
+{% endif %}
+<div class="cierre-layout">
+  <form method="post">
+    <ol class="cierre-pasos">
+      <li><div><h2>Cuenta el efectivo</h2>
+        <label>Efectivo contado (opcional, pero recomendable)<input name="counted" id="counted" inputmode="decimal" value="{{ form.get('counted', to_input(s.counted) if s.counted is not none else '') }}" placeholder="Lo que hay en caja"></label></div></li>
+      <li><div><h2>Compara con lo esperado</h2>
+        <p id="resultado" class="resultado" aria-live="polite"></p></div></li>
+      <li><div><h2>Separa la reserva</h2>
+        <label>Reservar para la siguiente jornada (Bs)<input name="reserve" id="reserve" inputmode="decimal" value="{{ form.get('reserve', to_input(s.reserve)) }}"></label>
+        <p id="bolsa" class="resultado" aria-live="polite"></p></div></li>
+      <li><div><h2>Cierra la jornada</h2>
+        <label>Observaciones<textarea name="notes" rows="2" maxlength="500">{{ form.get('notes', wd.notes) }}</textarea></label>
+        {% if tasks %}<p class="suave">Tareas de cierre sin marcar: {{ tasks|rejectattr('done')|list|length }} de {{ tasks|length }} (no impide cerrar).</p>{% endif %}
+        <div class="acciones"><button class="btn" {{ 'disabled' if pending }}>Cerrar jornada y ver informe</button><a class="btn sec" href="{{ url_for('workday.index') }}">Volver</a></div></div></li>
+    </ol>
+  </form>
+  <aside class="tira" aria-label="Arqueo de la jornada">
+    <h2>Arqueo</h2>
+    <table class="tabla num cierre" data-expected="{{ s.expected }}" data-reserve="{{ s.reserve }}">
+      <tr><td>Fondo inicial</td><td>{{ s.fund|bs }}</td></tr>
+      <tr><td>+ Ventas en efectivo</td><td>{{ s.cash|bs }}</td></tr>
+      <tr><td>− Gastos</td><td>{{ s.expenses|bs }}</td></tr>
+      <tr class="total"><td>Esperado</td><td>{{ s.expected|bs }}</td></tr>
+      <tr class="suave"><td>Ventas por QR (no está en la caja física)</td><td>{{ s.qr|bs }}</td></tr>
+      <tr class="suave"><td>Total de ventas registradas</td><td>{{ s.sales|bs }}</td></tr>
+    </table>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/cierre.js') }}"></script>{% endblock %}

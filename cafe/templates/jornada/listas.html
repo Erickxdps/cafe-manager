@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Listas de tareas · Café Personal{% endblock %}
+{% macro bloque(titulo, kind, items) %}
+<section class="tareas"><h2>{{ titulo }}</h2>
+  {% for i in items %}
+  <div class="fila {{ 'inactivo' if not i.active }}">
+    <form class="inline grow" method="post"><input type="hidden" name="action" value="rename"><input type="hidden" name="item_id" value="{{ i.id }}">
+      <input name="text" value="{{ i.text }}" maxlength="120" required aria-label="Texto de la tarea"><button class="btn sec peq">Guardar</button></form>
+    <form method="post"><input type="hidden" name="item_id" value="{{ i.id }}"><input type="hidden" name="action" value="up"><button class="btn sec peq" aria-label="Subir" {{ 'disabled' if loop.first }}>↑</button></form>
+    <form method="post"><input type="hidden" name="item_id" value="{{ i.id }}"><input type="hidden" name="action" value="down"><button class="btn sec peq" aria-label="Bajar" {{ 'disabled' if loop.last }}>↓</button></form>
+    <form method="post"><input type="hidden" name="item_id" value="{{ i.id }}"><input type="hidden" name="action" value="{{ 'hide' if i.active else 'show' }}"><button class="btn sec peq">{{ 'Ocultar' if i.active else 'Mostrar' }}</button></form>
+  </div>{% endfor %}
+  <form class="inline" method="post"><input type="hidden" name="action" value="add"><input type="hidden" name="kind" value="{{ kind }}">
+    <input name="text" maxlength="120" placeholder="Nueva tarea" required aria-label="Nueva tarea de {{ titulo|lower }}"><button class="btn peq">Agregar</button></form>
+</section>
+{% endmacro %}
+{% block content %}
+<div class="cabecera"><h1>Listas de tareas</h1><a class="btn sec" href="{{ url_for('workday.index') }}">Volver a Jornada</a></div>
+<p class="suave">Los cambios se aplican a las jornadas que abras desde ahora; la jornada en curso conserva sus tareas.</p>
+<div class="dos-col">{{ bloque('Apertura', 'open', open_items) }}{{ bloque('Cierre', 'close', close_items) }}</div>
+{% endblock %}

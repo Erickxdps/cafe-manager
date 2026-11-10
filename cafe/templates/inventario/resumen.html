@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "macros.html" import disponibilidad %}
+{% block title %}Inventario · Café Personal{% endblock %}
+{% block content %}
+<h1>Inventario</h1>
+{% include "inventario/_tabs.html" %}
+<div class="acciones grandes">
+  <a class="btn" href="{{ url_for('inventory.receipt') }}">Recibir productos</a>
+  <a class="btn sec" href="{{ url_for('inventory.count') }}">Contar existencias</a>
+</div>
+<div class="resumen-alertas">
+  <a class="chip bajo" href="{{ url_for('inventory.summary', filtro='bajo') }}">{{ n_low }} con existencias bajas</a>
+  <a class="chip agotado" href="{{ url_for('inventory.summary', filtro='agotado') }}">{{ n_out }} agotados</a>
+  {% if not wd %}<span class="suave">No hay jornada abierta: las columnas del día muestran 0.</span>{% endif %}
+</div>
+{% if without_initial %}
+<section class="aviso">
+  <strong>Productos sin existencias iniciales</strong>
+  <form method="post" action="{{ url_for('inventory.initial') }}" class="inicial">
+    {% for r in without_initial %}<label>{{ r.name }}<input type="hidden" name="v_id" value="{{ r.variant_id }}"><input type="number" name="qty" min="0" placeholder="0"></label>{% endfor %}
+    <button class="btn peq">Guardar iniciales</button></form>
+</section>
+{% endif %}
+<form class="filtros" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Buscar…" aria-label="Buscar">
+  <select name="categoria" aria-label="Categoría"><option value="">Todas</option>{% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if cat == c.id }}>{{ c.name }}</option>{% endfor %}</select>
+  <select name="filtro" aria-label="Estado">
+    <option value="todos" {{ 'selected' if filtro == 'todos' }}>Todos</option><option value="bajo" {{ 'selected' if filtro == 'bajo' }}>Existencias bajas</option>
+    <option value="agotado" {{ 'selected' if filtro == 'agotado' }}>Agotados</option></select>
+  <button class="btn sec peq">Filtrar</button>
+</form>
+<div class="tabla-scroll"><table class="tabla num">
+  <thead><tr><th>Producto</th><th>Apertura</th><th>Entradas</th><th>Vendidas</th><th>Ajustes</th><th>Actual</th><th>Mínimo</th><th>Estado</th><th></th></tr></thead>
+  <tbody>{% for r in rows %}
+    <tr><td>{{ r.name }}<br><small class="suave">{{ r.category }}</small></td>
+      <td>{{ r.apertura }}</td><td>{{ '+%d'|format(r.entradas) if r.entradas else '·' }}</td>
+      <td>{{ '−%d'|format(r.vendidas) if r.vendidas > 0 else ('+%d'|format(-r.vendidas) if r.vendidas < 0 else '·') }}</td>
+      <td>{{ '%+d'|format(r.ajustes) if r.ajustes else '·' }}</td><td><strong>{{ r.stock }}</strong></td><td>{{ r.min_stock }}</td>
+      <td>{{ disponibilidad(r.availability, r.stock) }}</td>
+      <td><a class="btn sec peq" href="{{ url_for('inventory.history', variante=r.variant_id) }}">Historial</a></td></tr>
+  {% else %}<tr><td colspan="9" class="vacio">No hay productos con control de existencias. Actívalo al editar un producto (Control de stock: Sí).</td></tr>{% endfor %}</tbody>
+</table></div>
+{% include "inventario/_sin_control.html" %}
+<p class="suave">Actual = Apertura + Entradas − Vendidas + Ajustes. La apertura es lo que había al empezar la jornada (el conteo del día anterior).</p>
+{% endblock %}

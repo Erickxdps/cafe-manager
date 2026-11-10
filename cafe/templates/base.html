@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Café Personal{% endblock %}</title>
+  <link rel="icon" href="data:,">
+  <script>/* tema guardado (claro u oscuro) antes de pintar, para que no parpadee */
+    try { if (localStorage.getItem('cafe-tema') === 'oscuro') document.documentElement.dataset.tema = 'oscuro'; } catch (e) {}</script>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/instrument-sans.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/big-shoulders-stencil.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+</head>
+<body>
+{% set ep = request.endpoint or '' %}
+{% macro nav(endpoint, prefix, icon, label) %}
+  {% set here = (ep == endpoint) if prefix == '=' else ep.startswith(prefix) %}
+  <a href="{{ url_for(endpoint) }}" {% if here %}aria-current="page"{% endif %}>{{ icono(icon) }}<span>{{ label }}</span></a>
+{% endmacro %}
+<div class="franja{{ ' vencida' if jornada_vencida }}">
+  <span>{{ dia(today)|capitalize }} {{ today|fecha }}</span>
+  {% if jornada_vencida %}<a href="{{ url_for('workday.close') }}">{{ icono('alerta') }}Sigue abierta la jornada del {{ jornada_abierta.work_date|fecha }}</a>
+  {% elif jornada_abierta %}<a href="{{ url_for('workday.index') }}">{{ icono('reloj') }}Jornada abierta desde las {{ jornada_abierta.opened_at[11:16] }}</a>
+  {% else %}<a href="{{ url_for('workday.index') }}">{{ icono('jornada') }}Sin jornada abierta: abrir la jornada</a>{% endif %}
+  <button type="button" class="tema-btn" id="tema-btn" aria-pressed="false">{{ icono('oscuro', 'i-oscuro') }}{{ icono('claro', 'i-claro') }}<span class="tema-txt">Modo oscuro</span></button>
+</div>
+<div class="marco">
+<aside class="riel">
+  <a class="marca" href="{{ url_for('main.index') }}"><span class="marca-taza">{{ icono('recetario') }}</span><span>Café Personal</span></a>
+  <nav class="menu" aria-label="Secciones">
+    <div class="grupo"><p class="grupo-nombre">Servicio</p>
+      {{ nav('main.index', '=', 'inicio', 'Inicio') }}
+      {{ nav('orders.order_list', 'orders.', 'pedidos', 'Pedidos') }}
+      {{ nav('caja.index', 'caja.', 'caja', 'Caja') }}
+      {{ nav('workday.index', 'workday.', 'jornada', 'Jornada') }}</div>
+    <div class="grupo"><p class="grupo-nombre">Mercadería</p>
+      {{ nav('inventory.summary', 'inventory.', 'inventario', 'Inventario') }}
+      {{ nav('catalog.product_list', 'catalog.', 'catalogo', 'Catálogo') }}
+      {{ nav('promotions.promo_list', 'promotions.', 'promociones', 'Promociones') }}
+      {{ nav('recipes.recipe_list', 'recipes.', 'recetario', 'Recetario') }}</div>
+    <div class="grupo"><p class="grupo-nombre">Registros</p>
+      {{ nav('reports.history', 'reports.', 'historial', 'Historial') }}
+      {{ nav('notes.note_list', 'notes.', 'notas', 'Notas') }}</div>
+  </nav>
+  <div class="riel-pie">
+    {% if caja_total is not none %}
+    <a id="caja-chip" class="pizarra {{ 'neg' if caja_total.expected < 0 }}" href="{{ url_for('caja.index') }}" title="Abrir la caja">
+      <span class="pizarra-titulo">Efectivo esperado</span>
+      <strong>{{ caja_total.expected|bs }}</strong>
+      <span class="pizarra-cuenta" data-fondo="{{ caja_total.fund }}">{{ caja_total.fund|bs }} de fondo<br>+ {{ caja_total.cash|bs }} en efectivo<br>− {{ caja_total.expenses|bs }} de gastos</span>
+    </a>
+    {% else %}
+    <a class="pizarra apagada" href="{{ url_for('workday.index') }}">
+      <span class="pizarra-titulo">Sin jornada abierta</span>
+      <span class="pizarra-cuenta">Abre la jornada para registrar pedidos y llevar la caja.</span>
+    </a>
+    {% endif %}
+    {{ nav('config.index', 'config.', 'config', 'Configuración') }}
+  </div>
+</aside>
+
+<div class="lienzo">
+  <header class="barra">
+    <div class="buscar">
+      {{ icono('buscar', 'lupa') }}
+      <input id="buscador" type="search" placeholder="Buscar producto: precio, existencias o receta" autocomplete="off" aria-label="Buscar producto">
+      <ul id="sugerencias" class="sugerencias" hidden></ul>
+    </div>
+  </header>
+  <main class="wrap">
+    {% if jornada_vencida and request.endpoint not in ('workday.close', 'main.index') %}
+      <div class="aviso error" role="alert">{{ icono('alerta') }}<span>La jornada abierta es del {{ jornada_abierta.work_date|fecha }}. Lo que registres ahora se contará en ese día. <a href="{{ url_for('workday.close') }}">Cerrar esa jornada</a></span></div>
+    {% endif %}
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="aviso {{ 'error' if category == 'error' else '' }}" role="status">{{ icono('alerta' if category == 'error' else 'ok') }}<span>{{ message }}</span></div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="pie">Registros personales y orientativos; no sustituyen el sistema oficial de ventas, caja ni inventario del establecimiento.</footer>
+</div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/caja.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

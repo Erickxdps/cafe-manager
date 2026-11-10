@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ ('Pedido #' ~ order.id) if order.id else 'Nuevo pedido' }} · Café Personal{% endblock %}
+{% block content %}
+<div id="mensaje" class="aviso error" role="alert" hidden></div>
+<div class="editor">
+  <section class="picker" aria-label="Productos">
+    <div class="picker-cabeza"><input id="filtro" type="search" placeholder="Filtrar productos…" aria-label="Filtrar productos">
+      <a class="btn sec" href="{{ url_for('orders.order_list') }}">Ver pedidos</a></div>
+    <div id="cats" class="secciones-tabs" role="group" aria-label="Categorías"></div>
+    <div id="lista-productos"></div>
+  </section>
+  <aside class="carrito">
+    <header class="comanda-cabeza"><h1 id="titulo">{{ ('Comanda #' ~ order.id) if order.id else 'Comanda nueva' }}</h1><div id="estado"></div></header>
+    <ul id="lineas" class="lineas"></ul>
+    <details class="extras" id="extras"><summary>Descuento u observación</summary>
+      <label>Descuento (Bs, monto fijo)<input id="descuento" inputmode="decimal" placeholder="0"></label>
+      <label>Observaciones<textarea id="notas" rows="2" maxlength="500"></textarea></label></details>
+    <dl class="totales"><dt>Subtotal</dt><dd id="subtotal"></dd><dt>Descuento</dt><dd id="desc-val"></dd>
+      <dt class="total">Total</dt><dd class="total" id="total"></dd></dl>
+    <div id="botones" class="acciones"></div>
+  </aside>
+</div>
+<dialog id="combo-dialog" class="combo-dialog" aria-labelledby="combo-titulo">
+  <div class="combo-cabeza"><div><h2 id="combo-titulo"></h2><p id="combo-precio" class="suave"></p></div></div>
+  <div id="combo-pasos" class="combo-pasos"></div>
+  <div class="combo-pie"><p id="combo-resumen" class="combo-resumen" aria-live="polite"></p>
+    <div class="acciones"><button type="button" class="btn sec" id="combo-cerrar">Cancelar</button>
+      <button type="button" class="btn" id="combo-agregar">Agregar combo</button></div></div>
+</dialog>
+<dialog id="receta-dialog"><h2 id="receta-titulo"></h2><ol id="receta-pasos" class="pasos"></ol>
+  <form method="dialog"><button class="btn sec">Cerrar</button></form></dialog>
+<script id="boot" type="application/json">{{ boot|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/pedido.js') }}"></script>{% endblock %}

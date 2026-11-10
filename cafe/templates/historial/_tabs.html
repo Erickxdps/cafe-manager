@@ -1,0 +1,4 @@
+<nav class="pestanas">
+  <a href="{{ url_for('reports.history') }}" {% if request.endpoint in ('reports.history', 'reports.compare') %}aria-current="page"{% endif %}>Historial de jornadas</a>
+  <a href="{{ url_for('reports.report') }}" {% if request.endpoint == 'reports.report' %}aria-current="page"{% endif %}>Informes</a>
+</nav>

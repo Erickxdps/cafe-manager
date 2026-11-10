@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Conteo físico · Café Personal{% endblock %}
+{% block content %}
+<h1>Inventario</h1>
+{% include "inventario/_tabs.html" %}
+{% if not wd %}<p class="aviso error">Abre la jornada para ajustar existencias.</p>{% endif %}
+<p class="suave">Úsalo antes de empezar o al cerrar: escribe lo que contaste. Solo los productos con diferencia generan un ajuste; los que dejes en blanco no se tocan.</p>
+<form method="post" class="tabla-form">
+  <div class="tabla-scroll"><table class="tabla num">
+    <thead><tr><th>Producto</th><th>Según el sistema</th><th>Contado</th><th>Diferencia</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr data-diff data-base="{{ r.stock }}"><td>{{ r.name }}<input type="hidden" name="v_id" value="{{ r.variant_id }}"></td>
+        <td>{{ r.stock }}<input type="hidden" name="system" value="{{ r.stock }}"></td>
+        <td><input type="number" name="counted" min="0" class="cnt" aria-label="Contado de {{ r.name }}"></td><td class="dif"></td></tr>
+    {% else %}<tr><td colspan="4" class="vacio">No hay productos con control de existencias.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <label>Motivo o comentario (opcional)<input name="reason" maxlength="120" placeholder="Ej.: conteo de cierre"></label>
+  <div class="acciones"><button class="btn" {{ 'disabled' if not wd }}>Aplicar conteo</button></div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/inventario.js') }}"></script>{% endblock %}
